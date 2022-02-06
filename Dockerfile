@@ -1,9 +1,5 @@
-FROM alpine
+FROM jlesage/firefox
 
-RUN apk --no-cache upgrade
-RUN apk add --no-cache apache2
 
-EXPOSE $PORT
+EXPOSE 5800
 
-CMD ["-D","FOREGROUND"]
-ENTRYPOINT ["/usr/sbin/httpd"]
