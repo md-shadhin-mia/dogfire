@@ -1,6 +1,6 @@
 FROM jlesage/firefox
-RUN apt-get update 
-RUN apt-get install –y apache2 
-RUN apt-get install –y apache2-utils 
-RUN apt-get clean 
+
+RUN apk add apache2
+RUN rc-service apache2 start
+
 EXPOSE $PORT CMD [“apache2ctl”, “-D”, “FOREGROUND”]
