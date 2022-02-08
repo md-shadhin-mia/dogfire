@@ -6,7 +6,7 @@ RUN mkdir /home/app
 ENV DISPLAY=:99
 
 COPY ./package*.json /home/app/
-COPY ./public /home/app/public
+COPY ./public/ /home/app/public
 COPY ./app.js /home/app/
 COPY ./script.sh /home/app/
 
