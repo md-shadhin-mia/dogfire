@@ -4,12 +4,14 @@ RUN apk add xvfb xfce4 firefox ffmpeg
 RUN mkdir /home/app
 
 ENV DISPLAY=:99
-WORKDIR /home/app
-COPY ./package*.json ./
+
+COPY ./package*.json /home/app/
 RUN npm i
-COPY ./public ./public
-COPY ./app.js ./
-ADD ./script.sh ./script.sh
+COPY ./public /home/app/public
+COPY ./app.js /home/app/
+COPY ./script.sh /home/app/
+
+WORKDIR /home/app
 CMD [ "sh", "script.sh" ]
 
 EXPOSE 8000
