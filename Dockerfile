@@ -1,6 +1,6 @@
 FROM node:17-alpine3.15
 
-RUN apk add xvfb xfce4 firefox ffmpeg
+RUN apk add xvfb fluxbox firefox ffmpeg
 RUN mkdir /home/app
 
 ENV DISPLAY=:99
