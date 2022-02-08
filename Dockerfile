@@ -6,10 +6,11 @@ RUN mkdir /home/app
 ENV DISPLAY=:99
 
 COPY ./package*.json /home/app/
-RUN npm i
 COPY ./public /home/app/public
 COPY ./app.js /home/app/
 COPY ./script.sh /home/app/
+
+RUN npm i
 
 WORKDIR /home/app
 CMD [ "sh", "script.sh" ]
