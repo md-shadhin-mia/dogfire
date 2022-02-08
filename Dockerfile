@@ -9,10 +9,10 @@ COPY ./package*.json /home/app/
 COPY ./public/ /home/app/public
 COPY ./app.js /home/app/
 COPY ./script.sh /home/app/
-
+WORKDIR /home/app
 RUN npm i
 
-WORKDIR /home/app
+
 CMD [ "sh", "script.sh" ]
 
 EXPOSE 8000
