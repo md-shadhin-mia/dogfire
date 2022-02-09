@@ -3,7 +3,7 @@ const child_process = require("child_process");
 
 const PORT = process.env.PORT || 8000;
 const app=express();
-
+app.use(express.static("public"));
 app.get("/video", async (req, res)=>{
     res.contentType('image/jpeg');
     let proces = child_process.spawn("ffmpeg", ["-f", "x11grab", '-i', ':99', "-q:v", "10","-preset", "veryfast" ,'-f', 'mjpeg', "-vframes", "1", '-']);
