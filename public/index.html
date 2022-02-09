@@ -15,7 +15,18 @@
             let blob = await fetch("/video").then(res => res.blob())
             screenImg.src = URL.createObjectURL(blob);
         }
-        setInterval(getImageBuff, 100);
+        // setInterval(getImageBuff, 100);
+
+        if("WebSocket" in window){
+                var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+                var address = protocol + window.location.host;
+                var socket = new WebSocket(address);
+                socket.addEventListener("message", (msg)=>{
+                    screenImg.src = URL.createObjectURL(msg.data);
+                });
+            }else{
+                console.error("WebSocket not support");
+            }
     </script>
 </body>
 </html>
