@@ -30,14 +30,26 @@
            }
            img.src = URL.createObjectURL(blob);
         }
+	    async function loadpart(x,y, w, h){
+           let respo = await fetch(`/imagepart/${x}/${y}/${w}/${h}`);
+           blob =await respo.blob();
+           img = new Image();
+           img.onload = () =>{
+               ctx.drawImage(img, x, y);
+           }
+           img.src = URL.createObjectURL(blob);
+        }
        async function chackChage(){
            let respo = await fetch("ischage");
            jres =await respo.json();
-           if(jres.isChange)
-                    await loadit();
+	   if(jres.length != 0){
+		 console.log(jres);
+                 for(let i=0; i < jres.length; i++)
+		               await loadpart(jres[i].point.x,jres[i].point.y, jres[i].to.w, jres[i].to.h);
+           }
             setTimeout(chackChage, 100);
         }
-        setTimeout(chackChage, 100);
+        chackChage();
         loadit();
         monitor.addEventListener("click", (e)=>{
             console.log(e.offsetX, e.offsetY);

@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        XImage *img = XGetImage(display,root,x,y,width-x,height-y,XAllPlanes(),ZPixmap);
+        XImage *img = XGetImage(display,root,x,y,width,height,XAllPlanes(),ZPixmap);
         if (img != NULL)
         {
             if(strcmp(filename, "") != 0)

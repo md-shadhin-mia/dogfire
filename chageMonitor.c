@@ -86,6 +86,10 @@ int main(int argc, char *argv[])
             XDestroyImage(img);
         }
         int chageCound = 0;
+        int maxCX = 0;
+        int minCX = width;
+        int maxCY = 0;
+        int minCY = height;
         //test a color
         while (1)
         {
@@ -98,7 +102,23 @@ int main(int argc, char *argv[])
                         getPixelColor(img, x, y, &curColor);
                         if(!isEqual(&pixelMap[x][y], &curColor))
                         {
-                            chageCound++;;
+                            chageCound++;
+                            if(maxCX < x)
+                            {
+                                maxCX = x;
+                            }
+                            if(maxCY < y)
+                            {
+                                maxCY = y;
+                            }
+                            if(minCX > x)
+                            {
+                                minCX = x;
+                            }
+                            if(minCY > y)
+                            {
+                                minCY = y;
+                            }
                             pixelMap[x][y] = curColor;
                         }
                     }   
@@ -110,11 +130,17 @@ int main(int argc, char *argv[])
             }
             if(chageCound > 0)
             {
-                printf("%d", chageCound);
+                printf("{\"pixel\":%d,\"point\":{\"x\":%d, \"y\":%d},\"to\":{\"w\":%d, \"h\":%d}}",
+                            chageCound, minCX, minCY, maxCX - minCX, maxCY - minCY
+                 );
                 fflush(stdout);
                 chageCound = 0;
+                maxCX = 0;
+                minCX = width;
+                maxCY = 0;
+                minCY = height;
             }
-            usleep(100000);
+            usleep(40000);
         }
         
         //clear up memory

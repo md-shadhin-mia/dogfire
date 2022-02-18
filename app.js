@@ -17,13 +17,28 @@ function takeSnap(x =0 , y = 0)
     })
 }
 
-var isChange = true;
+function takeSnapPart(x , y , w, h)
+{
+    return new Promise((resolve, reject)=>{
+        let _buf = []
+        let proces = child_process.spawn('./takepng', ['-o', '-', '-r', '3', '-x', x.toString(), '-y', y.toString(), '-w', w.toString(), '-h', h.toString()]);
+        // let proces = child_process.spawn("ffmpeg", ['-f', 'x11grab', '-i', `${process.env.DISPLAY}`,'-vframes','1', '-f', 'mjpeg', '-']);
+        proces.stdout.on("data", (chunk)=>_buf.push(chunk));
+        proces.stdout.on("end", ()=>resolve(Buffer.concat(_buf)));
+        proces.stderr.setEncoding('utf8');
+        proces.stderr.on("error", (error)=>reject(error));
+    })
+}
+
+
+var chages = [];
 //require chage-monitor chageMonitor.c compiled x11 and png
 async function check(){
     const proces = child_process.spawn('./chage-monitor');
     proces.stdout.setEncoding('utf-8');
     proces.stdout.on("data", (data)=>{
-        isChange = true;
+        chages.push(JSON.parse(data));
+
     })
 }
 
@@ -46,6 +61,16 @@ app.get("/image", async (req, res)=>{
     // proces.stdout.pipe(res);
 });
 
+app.get("/imagepart/:x/:y/:w/:h", async (req, res)=>{
+    res.header('img-size', '1024x1600');
+    let image = await takeSnapPart(req.params.x, req.params.y, req.params.w, req.params.h);
+    // let proces = child_process.spawn("ffmpeg", ['-f', 'x11grab', '-i', `${process.env.DISPLAY}`,'-vframes','1', '-f', 'apng', '-']);
+    res.contentType('image/png');
+    res.send(image);
+    // proces.stdout.pipe(res);
+})
+
+
 //requared xdotools for those
 app.get("/click/:x/:y", (req, res)=>{
     child_process.exec(`xdotool mousemove ${req.params.x} ${req.params.y} click 1`);
@@ -57,9 +82,8 @@ app.get("/rightclick/:x/:y", (req, res)=>{
 })
 
 app.get("/ischage", (req,res)=>{
-    res.json({isChange});
-    if(isChange)
-        isChange = false;
+    res.json(chages);
+    chages = [];
 })
 
 check();
