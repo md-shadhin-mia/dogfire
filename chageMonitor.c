@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
                 fflush(stdout);
                 chageCound = 0;
             }
-            usleep(1);
+            usleep(100000);
         }
         
         //clear up memory
