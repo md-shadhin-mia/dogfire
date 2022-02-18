@@ -4,19 +4,50 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIREDOG</title>
+    <title>Hello world</title>
 </head>
 <body>
-    <img id="screen" alt="video">
-    <script>
-        var screenImg = document.querySelector("#screen");
-        async function  getImageBuff()
-        {
-            let blob = await fetch("/video").then(res => res.blob())
-            screenImg.src = URL.createObjectURL(blob);
-            setTimeout(getImageBuff, 100);
-        }
-        getImageBuff()
-    </script>
+    <div>
+        your screen is here;
+    </div>
+    <canvas id="monitor">
+
+    </canvas>
 </body>
+    <script>
+        var monitor = document.getElementById("monitor") ;
+        var ctx = monitor.getContext('2d');
+        let blob;
+        let img;
+       async function loadit(){
+           let respo = await fetch("/image");
+           blob =await respo.blob();
+           img = new Image();
+           img.onload = () =>{
+               monitor.width = img.width;
+               monitor.height = img.height;
+               ctx.drawImage(img, 0, 0);
+           }
+           img.src = URL.createObjectURL(blob);
+        }
+       async function chackChage(){
+           let respo = await fetch("ischage");
+           jres =await respo.json();
+           if(jres.isChange)
+                    await loadit();
+            setTimeout(chackChage, 100);
+        }
+        setTimeout(chackChage, 100);
+        loadit();
+        monitor.addEventListener("click", (e)=>{
+            console.log(e.offsetX, e.offsetY);
+            fetch(`click/${e.offsetX}/${e.offsetY}`);
+        });
+
+        monitor.addEventListener("contextmenu", (e)=>{
+            e.preventDefault();
+            console.log(e.offsetX, e.offsetY);
+            fetch(`rightclick/${e.offsetX}/${e.offsetY}`);
+        });
+    </script>
 </html>
