@@ -1,5 +1,5 @@
 #! /bin/sh
-exec Xvfb $DISPLAY -screen 0 1920x1080x24 &
+exec Xvfb $DISPLAY -screen 0 1024x768x24 &
 fluxbox &
 sleep 4
 firefox &
