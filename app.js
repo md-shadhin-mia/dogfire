@@ -81,6 +81,11 @@ app.get("/rightclick/:x/:y", (req, res)=>{
     res.send(true);
 })
 
+app.get('/typekey/:text', (req, res)=>{
+    child_process.exec(`xdotool type ${req.params.text}`);
+    res.send(true);
+})
+
 app.get("/ischage", (req,res)=>{
     res.json(chages);
     chages = [];

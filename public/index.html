@@ -5,17 +5,53 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello world</title>
+    <style>
+        *{
+            margin: 0px;
+            padding: 0px;
+            box-sizing: border-box;
+        }
+        .display {
+            position: relative;
+        }
+        .action {
+            display: flex;
+            position: absolute;
+            bottom: 34px;
+            width: 100%;
+            background: #0c0c0c6b;
+            color: wheat;
+            pointer-events: none;
+        }
+        .action .type{
+            display: none;
+            background: #000000A1;
+            padding: 8px;
+            margin: auto;
+            color: rgb(255, 255, 255);
+        }
+        .action .type.active{
+            display: block;
+        }
+        </style>
 </head>
 <body>
     <div>
         your screen is here;
     </div>
-    <canvas id="monitor">
+    <div class="display">
+        <canvas id="monitor">
 
-    </canvas>
+        </canvas>
+        <div class="action">
+            <div class="type">
+            </div>
+        </div>
+    </div>
 </body>
     <script>
         var monitor = document.getElementById("monitor") ;
+        var actionType = document.querySelector('.type');
         var ctx = monitor.getContext('2d');
         let blob;
         let img;
@@ -39,16 +75,17 @@
            }
            img.src = URL.createObjectURL(blob);
         }
+
        async function chackChage(){
            let respo = await fetch("ischage");
            jres =await respo.json();
-	   if(jres.length != 0){
-		 console.log(jres);
-                 for(let i=0; i < jres.length; i++)
-		               await loadpart(jres[i].point.x,jres[i].point.y, jres[i].to.w, jres[i].to.h);
-           }
-            setTimeout(chackChage, 100);
-        }
+           if(jres.length != 0){
+                console.log(jres);
+                        for(let i=0; i < jres.length; i++)
+                            await loadpart(jres[i].point.x,jres[i].point.y, jres[i].to.w, jres[i].to.h);
+                }
+                    setTimeout(chackChage, 1000);
+            }
         chackChage();
         loadit();
         monitor.addEventListener("click", (e)=>{
@@ -61,5 +98,16 @@
             console.log(e.offsetX, e.offsetY);
             fetch(`rightclick/${e.offsetX}/${e.offsetY}`);
         });
+        var keytime = null;
+        document.onkeypress = (e)=>{
+            clearTimeout(keytime);
+            actionType.innerText += e.key;
+            actionType.classList.add('active');
+            keytime = setTimeout(()=>{
+                fetch(`/typekey/${actionType.innerText}`)
+                actionType.classList.remove('active');
+                actionType.innerText = "";
+            }, 2000)
+        }
     </script>
 </html>
