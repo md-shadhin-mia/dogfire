@@ -3,13 +3,18 @@ const child_process = require("child_process");
 
 const PORT = process.env.PORT || 8000;
 
-//require takepng takepng.c compiled x11 and png
+const CHAGE_MONITOR_CONFIG = {
+    gridSize: process.env.CHAGE_GRID_SIZE || 4,
+    threshold: process.env.CHAGE_THRESHOLD || 10,
+    minChanges: process.env.CHAGE_MIN_CHANGES || 1,
+    sleepTime: process.env.CHAGE_SLEEP || 40000,
+};
+
 function takeSnap(x =0 , y = 0)
 {
     return new Promise((resolve, reject)=>{
         let _buf = []
         let proces = child_process.spawn('./takepng', ['-o', '-', '-r', '3']);
-        // let proces = child_process.spawn("ffmpeg", ['-f', 'x11grab', '-i', `${process.env.DISPLAY}`,'-vframes','1', '-f', 'mjpeg', '-']);
         proces.stdout.on("data", (chunk)=>_buf.push(chunk));
         proces.stdout.on("end", ()=>resolve(Buffer.concat(_buf)));
         proces.stderr.setEncoding('utf8');
@@ -22,7 +27,6 @@ function takeSnapPart(x , y , w, h)
     return new Promise((resolve, reject)=>{
         let _buf = []
         let proces = child_process.spawn('./takepng', ['-o', '-', '-r', '3', '-x', x.toString(), '-y', y.toString(), '-w', w.toString(), '-h', h.toString()]);
-        // let proces = child_process.spawn("ffmpeg", ['-f', 'x11grab', '-i', `${process.env.DISPLAY}`,'-vframes','1', '-f', 'mjpeg', '-']);
         proces.stdout.on("data", (chunk)=>_buf.push(chunk));
         proces.stdout.on("end", ()=>resolve(Buffer.concat(_buf)));
         proces.stderr.setEncoding('utf8');
@@ -32,14 +36,61 @@ function takeSnapPart(x , y , w, h)
 
 
 var chages = [];
-//require chage-monitor chageMonitor.c compiled x11 and png
-async function check(){
-    const proces = child_process.spawn('./chage-monitor');
-    proces.stdout.setEncoding('utf-8');
-    proces.stdout.on("data", (data)=>{
-        chages.push(JSON.parse(data));
+var monitorProcess = null;
+var isMonitorRunning = false;
 
-    })
+function startChangeMonitor(){
+    if (isMonitorRunning) return;
+    isMonitorRunning = true;
+
+    const args = [
+        '-g', CHAGE_MONITOR_CONFIG.gridSize.toString(),
+        '-t', CHAGE_MONITOR_CONFIG.threshold.toString(),
+        '-m', CHAGE_MONITOR_CONFIG.minChanges.toString(),
+        '-s', CHAGE_MONITOR_CONFIG.sleepTime.toString()
+    ];
+
+    monitorProcess = child_process.spawn('./chage-monitor', args);
+    monitorProcess.stdout.setEncoding('utf-8');
+    monitorProcess.stdout.on("data", (data)=>{
+        const lines = data.trim().split('\n');
+        for (const line of lines) {
+            if (line.length > 0) {
+                try {
+                    chages.push(JSON.parse(line));
+                } catch (e) {
+                    console.error('Failed to parse change data:', line);
+                }
+            }
+        }
+    });
+
+    monitorProcess.stderr.on("data", (data)=>{
+        console.error('[chage-monitor]', data.toString());
+    });
+
+    monitorProcess.on("error", (error)=>{
+        console.error('chage-monitor process error:', error.message);
+        isMonitorRunning = false;
+    });
+
+    monitorProcess.on("exit", (code, signal)=>{
+        console.log(`chage-monitor exited with code ${code}`);
+        isMonitorRunning = false;
+        if (code !== 0 && code !== null) {
+            setTimeout(() => startChangeMonitor(), 1000);
+        }
+    });
+
+    console.log(`Started chage-monitor with config:`, CHAGE_MONITOR_CONFIG);
+}
+
+function stopChangeMonitor(){
+    if (monitorProcess) {
+        monitorProcess.kill('SIGTERM');
+        monitorProcess = null;
+        isMonitorRunning = false;
+    }
 }
 
 const app=express();
@@ -55,23 +106,18 @@ app.get("/video", async (req, res)=>{
 app.get("/image", async (req, res)=>{
     res.header('img-size', '1024x1600');
     let image = await takeSnap();
-    // let proces = child_process.spawn("ffmpeg", ['-f', 'x11grab', '-i', `${process.env.DISPLAY}`,'-vframes','1', '-f', 'apng', '-']);
     res.contentType('image/png');
     res.send(image);
-    // proces.stdout.pipe(res);
 });
 
 app.get("/imagepart/:x/:y/:w/:h", async (req, res)=>{
     res.header('img-size', '1024x1600');
     let image = await takeSnapPart(req.params.x, req.params.y, req.params.w, req.params.h);
-    // let proces = child_process.spawn("ffmpeg", ['-f', 'x11grab', '-i', `${process.env.DISPLAY}`,'-vframes','1', '-f', 'apng', '-']);
     res.contentType('image/png');
     res.send(image);
-    // proces.stdout.pipe(res);
 })
 
 
-//requared xdotools for those
 app.get("/click/:x/:y", (req, res)=>{
     child_process.exec(`xdotool mousemove ${req.params.x} ${req.params.y} click 1`);
     res.send(true);
@@ -91,42 +137,34 @@ app.get("/ischage", (req,res)=>{
     chages = [];
 })
 
-check();
+app.get("/monitor/status", (req, res)=>{
+    res.json({
+        running: isMonitorRunning,
+        changesCount: chages.length,
+        config: CHAGE_MONITOR_CONFIG
+    });
+});
+
+app.get("/monitor/config", (req, res)=>{
+    const newConfig = {
+        gridSize: req.query.gridSize,
+        threshold: req.query.threshold,
+        minChanges: req.query.minChanges,
+        sleepTime: req.query.sleepTime
+    };
+
+    if (newConfig.gridSize) CHAGE_MONITOR_CONFIG.gridSize = parseInt(newConfig.gridSize);
+    if (newConfig.threshold) CHAGE_MONITOR_CONFIG.threshold = parseInt(newConfig.threshold);
+    if (newConfig.minChanges) CHAGE_MONITOR_CONFIG.minChanges = parseInt(newConfig.minChanges);
+    if (newConfig.sleepTime) CHAGE_MONITOR_CONFIG.sleepTime = parseInt(newConfig.sleepTime);
+
+    stopChangeMonitor();
+    startChangeMonitor();
+
+    res.json({ success: true, config: CHAGE_MONITOR_CONFIG });
+});
+
+startChangeMonitor();
 
 
 app.listen(PORT, ()=>console.log("server listen on " + PORT))
-
-/*
-
-
-const express = require('express');
-const child_process = require('child_process');
-const { application } = require('express');
-const PORT = process.env.PORT | 8000;
-const app = express();
-
-let impSize = {x:100, y:100}
-
-// function takeSnap(x, y)
-// {
-//     return new Promise((resolve, rejects)=>{
-//         let gest = child_process.spawn('ffmpeg', ['-video_size', `${impSize.x}x${impSize.y}`, '-f', 'x11grab', '-i', `${process.env.DISPLAY}+${x},${y}`,'-vframes','1', '-f', 'mjpeg', '-']);
-//         gest.stdout.pipe(createWriteStream(`scr/images-${x}-${y}.jpg`));
-//         gest.stdout.on('end',()=>resolve())
-//         gest.stderr.setEncoding('utf-8');
-//         gest.stderr.on('error',data=>{
-//             rejects(data);
-//         });
-//     });
-// }
-
-app.use(express.static("public"));
-
-
-
-
-app.listen(PORT, ()=>{
-    console.log("app listen on Port: "+PORT);
-}) 
-
-*/
